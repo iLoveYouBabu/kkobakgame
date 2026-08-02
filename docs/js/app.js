@@ -18,6 +18,11 @@ const MERGE_ANGULAR_VELOCITY_RATIO = 0.4;
 const MAX_MERGE_ANGULAR_VELOCITY = 0.04;
 const BODY_INERTIA_RATIO = 0.95;
 
+const HIGH_SCORE_STORAGE_KEY = "kkobakHighScore";
+const MERGE_POP_DURATION = 240;
+const MERGE_POP_START_SCALE = 0.85;
+const MERGE_POP_PEAK_SCALE = 1.1;
+
 // 처음 떨어질 수 있는 과일 단계: 0~2
 const DROP_LEVEL_MAX = 2;
 
@@ -31,7 +36,7 @@ const FRUITS = [
     "radius": 18,
     "color": "#ff7675",
     "score": 2,
-    "image": "./assets/fruits/fruit-1.png",
+    "image": "./assets/fruits/fruit-1.webp",
     "imageWidth": 647,
     "imageHeight": 768,
     "centroidX": 0.471497,
@@ -116,7 +121,7 @@ const FRUITS = [
     "radius": 24,
     "color": "#e84393",
     "score": 4,
-    "image": "./assets/fruits/fruit-2.png",
+    "image": "./assets/fruits/fruit-2.webp",
     "imageWidth": 674,
     "imageHeight": 768,
     "centroidX": 0.50185,
@@ -201,7 +206,7 @@ const FRUITS = [
     "radius": 32,
     "color": "#6c5ce7",
     "score": 8,
-    "image": "./assets/fruits/fruit-3.png",
+    "image": "./assets/fruits/fruit-3.webp",
     "imageWidth": 647,
     "imageHeight": 768,
     "centroidX": 0.500299,
@@ -286,7 +291,7 @@ const FRUITS = [
     "radius": 42,
     "color": "#fdcb6e",
     "score": 16,
-    "image": "./assets/fruits/fruit-4.png",
+    "image": "./assets/fruits/fruit-4.webp",
     "imageWidth": 626,
     "imageHeight": 768,
     "centroidX": 0.465128,
@@ -371,7 +376,7 @@ const FRUITS = [
     "radius": 54,
     "color": "#d63031",
     "score": 32,
-    "image": "./assets/fruits/fruit-5.png",
+    "image": "./assets/fruits/fruit-5.webp",
     "imageWidth": 641,
     "imageHeight": 768,
     "centroidX": 0.467888,
@@ -456,7 +461,7 @@ const FRUITS = [
     "radius": 68,
     "color": "#ffeaa7",
     "score": 64,
-    "image": "./assets/fruits/fruit-6.png",
+    "image": "./assets/fruits/fruit-6.webp",
     "imageWidth": 480,
     "imageHeight": 768,
     "centroidX": 0.415061,
@@ -541,7 +546,7 @@ const FRUITS = [
     "radius": 82,
     "color": "#fab1a0",
     "score": 128,
-    "image": "./assets/fruits/fruit-7.png",
+    "image": "./assets/fruits/fruit-7.webp",
     "imageWidth": 630,
     "imageHeight": 768,
     "centroidX": 0.496371,
@@ -626,7 +631,7 @@ const FRUITS = [
     "radius": 98,
     "color": "#f9ca24",
     "score": 256,
-    "image": "./assets/fruits/fruit-8.png",
+    "image": "./assets/fruits/fruit-8.webp",
     "imageWidth": 694,
     "imageHeight": 768,
     "centroidX": 0.497133,
@@ -711,7 +716,7 @@ const FRUITS = [
     "radius": 115,
     "color": "#badc58",
     "score": 512,
-    "image": "./assets/fruits/fruit-9.png",
+    "image": "./assets/fruits/fruit-9.webp",
     "imageWidth": 616,
     "imageHeight": 768,
     "centroidX": 0.497866,
@@ -796,7 +801,7 @@ const FRUITS = [
     "radius": 135,
     "color": "#6ab04c",
     "score": 1024,
-    "image": "./assets/fruits/fruit-10.png",
+    "image": "./assets/fruits/fruit-10.webp",
     "imageWidth": 597,
     "imageHeight": 768,
     "centroidX": 0.486596,
@@ -894,20 +899,29 @@ const nicknameInput = document.querySelector("#nickname");
 const startButton = document.querySelector("#startButton");
 const playerName = document.querySelector("#playerName");
 const scoreElement = document.querySelector("#score");
+const highScoreElement = document.querySelector("#highScore");
 const message = document.querySelector("#message");
 const gameContainer = document.querySelector("#gameContainer");
 const aimFruit = document.querySelector("#aimFruit");
 const dropGuide = document.querySelector("#dropGuide");
 const gameOverLine = document.querySelector("#gameOverLine");
 const nextFruitList = document.querySelector("#nextFruitList");
+const fruitGuideList = document.querySelector("#fruitGuideList");
+const fruitGuideButton = document.querySelector("#fruitGuideButton");
+const fruitGuideModal = document.querySelector("#fruitGuideModal");
+const closeFruitGuideButton = document.querySelector("#closeFruitGuideButton");
 const gameOverModal = document.querySelector("#gameOverModal");
 const finalScore = document.querySelector("#finalScore");
+const finalHighScore = document.querySelector("#finalHighScore");
+const newRecordMessage = document.querySelector("#newRecordMessage");
 const closeGameOverButton = document.querySelector("#closeGameOverButton");
 
 let engine = null;
 let render = null;
 let runner = null;
 let score = 0;
+let highScore = loadHighScore();
+let hasNewHighScore = false;
 let currentFruitLevel = 0;
 let nextFruitLevels = [];
 let aimX = BOARD_WIDTH / 2;
@@ -928,9 +942,140 @@ if (savedNickname) {
   nicknameInput.value = savedNickname;
 }
 
+highScoreElement.textContent = highScore;
+renderFruitGuide();
+
 startButton.addEventListener("click", startGame);
 nicknameInput.addEventListener("keydown", handleNicknameKeydown);
+fruitGuideButton.addEventListener("click", openFruitGuideModal);
+closeFruitGuideButton.addEventListener("click", closeFruitGuideModal);
+fruitGuideModal.addEventListener("click", handleFruitGuideBackdropClick);
+document.addEventListener("keydown", handleGlobalKeydown);
 closeGameOverButton.addEventListener("click", returnToStartScreen);
+
+/**
+ * 브라우저에 저장된 최고 점수를 안전하게 불러옵니다.
+ *
+ * @returns {number} 저장된 최고 점수
+ */
+function loadHighScore() {
+  try {
+    const storedScore = Number.parseInt(
+      localStorage.getItem(HIGH_SCORE_STORAGE_KEY),
+      10
+    );
+
+    return Number.isFinite(storedScore) && storedScore > 0
+      ? storedScore
+      : 0;
+  } catch (error) {
+    console.warn("최고 점수를 불러오지 못했습니다.", error);
+    return 0;
+  }
+}
+
+/**
+ * 현재 최고 점수를 브라우저에 저장합니다.
+ * 저장소를 사용할 수 없는 환경에서도 게임은 계속 진행됩니다.
+ *
+ * @returns {void}
+ */
+function saveHighScore() {
+  try {
+    localStorage.setItem(
+      HIGH_SCORE_STORAGE_KEY,
+      String(highScore)
+    );
+  } catch (error) {
+    console.warn("최고 점수를 저장하지 못했습니다.", error);
+  }
+}
+
+/**
+ * 전체 합체 단계를 이미지와 이름으로 도감에 표시합니다.
+ *
+ * @returns {void}
+ */
+function renderFruitGuide() {
+  const guideItems = FRUITS.map((fruit, index) => {
+    const item = document.createElement("li");
+    const level = document.createElement("span");
+    const image = document.createElement("img");
+    const name = document.createElement("strong");
+
+    item.className = "fruit-guide-item";
+
+    level.className = "fruit-guide-level";
+    level.textContent = String(index + 1);
+
+    image.className = "fruit-guide-image";
+    image.src = fruit.image;
+    image.alt = "";
+    image.decoding = "async";
+
+    name.className = "fruit-guide-name";
+    name.textContent = fruit.name;
+
+    item.append(level, image, name);
+    return item;
+  });
+
+  fruitGuideList.replaceChildren(...guideItems);
+}
+
+/**
+ * 단계 도감 모달을 엽니다.
+ *
+ * @returns {void}
+ */
+function openFruitGuideModal() {
+  fruitGuideModal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  closeFruitGuideButton.focus();
+}
+
+/**
+ * 단계 도감 모달을 닫고 도감 버튼으로 포커스를 되돌립니다.
+ *
+ * @returns {void}
+ */
+function closeFruitGuideModal() {
+  if (fruitGuideModal.classList.contains("hidden")) {
+    return;
+  }
+
+  fruitGuideModal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+  fruitGuideButton.focus();
+}
+
+/**
+ * 도감 카드 바깥의 어두운 영역을 누르면 모달을 닫습니다.
+ *
+ * @param {MouseEvent} event - 모달 클릭 이벤트
+ * @returns {void}
+ */
+function handleFruitGuideBackdropClick(event) {
+  if (event.target === fruitGuideModal) {
+    closeFruitGuideModal();
+  }
+}
+
+/**
+ * 전역 키보드 입력을 처리합니다.
+ * 도감이 열린 상태에서 Escape 키를 누르면 모달을 닫습니다.
+ *
+ * @param {KeyboardEvent} event - 키보드 입력 이벤트
+ * @returns {void}
+ */
+function handleGlobalKeydown(event) {
+  if (
+    event.key === "Escape" &&
+    !fruitGuideModal.classList.contains("hidden")
+  ) {
+    closeFruitGuideModal();
+  }
+}
 
 /**
  * 게임에 사용하는 모든 과일 이미지를 브라우저 캐시에 미리 불러옵니다.
@@ -1038,10 +1183,7 @@ function initializeGame() {
       height: BOARD_HEIGHT,
       wireframes: false,
       background: "#fffaf0",
-
-      // 멈춘 과일도 투명하게 표시하지 않음
       showSleeping: false
-
     }
   });
 
@@ -1312,6 +1454,7 @@ function clampFruitX(x, level) {
 function prepareFirstFruit() {
   isGameOver = false;
   dangerStartedAt = null;
+  hasNewHighScore = false;
   currentFruitLevel = getRandomDropLevel();
   nextFruitLevels = Array.from(
     { length: NEXT_FRUIT_COUNT },
@@ -1566,9 +1709,9 @@ function createFruitBody(x, y, level) {
     vertices,
     {
       label: "fruit",
-      restitution: 0.1,
-      friction: 0.025,
-      frictionStatic: 0.04,
+      restitution: 0.12,
+      friction: 0.04,
+      frictionStatic: 0.025,
       frictionAir: 0.006,
       slop: 0.05,
       sleepThreshold: 60,
@@ -1714,7 +1857,7 @@ function mergeFruits(bodyA, bodyB) {
     Math.min(
       MAX_MERGE_ANGULAR_VELOCITY,
       ((bodyA.angularVelocity + bodyB.angularVelocity) / 2) *
-      MERGE_ANGULAR_VELOCITY_RATIO
+        MERGE_ANGULAR_VELOCITY_RATIO
     )
   );
 
@@ -1737,10 +1880,88 @@ function mergeFruits(bodyA, bodyB) {
   );
 
   Composite.add(engine.world, mergedFruit);
+  animateMergedFruit(mergedFruit);
   addScore(nextFruit.score);
 
   mergingBodyIds.delete(bodyA.id);
   mergingBodyIds.delete(bodyB.id);
+}
+
+/**
+ * 합체된 과일의 충돌체는 그대로 두고 스프라이트만
+ * 0.85 → 1.1 → 1 배율로 짧게 확대·축소합니다.
+ *
+ * @param {Matter.Body} body - 합체로 생성된 과일 Body
+ * @returns {void}
+ */
+function animateMergedFruit(body) {
+  const sprite = body.render?.sprite;
+
+  if (!sprite) {
+    return;
+  }
+
+  const baseXScale = sprite.xScale;
+  const baseYScale = sprite.yScale;
+  const startedAt = performance.now();
+  const peakPoint = 0.42;
+
+  sprite.xScale = baseXScale * MERGE_POP_START_SCALE;
+  sprite.yScale = baseYScale * MERGE_POP_START_SCALE;
+
+  /**
+   * 합체 스프라이트의 한 프레임을 갱신합니다.
+   *
+   * @param {DOMHighResTimeStamp} now - 현재 애니메이션 시각
+   * @returns {void}
+   */
+  function updateMergeScale(now) {
+    const currentBody = engine
+      ? Composite.get(engine.world, body.id, "body")
+      : null;
+
+    if (!currentBody || isGameOver) {
+      return;
+    }
+
+    const progress = Math.min(
+      (now - startedAt) / MERGE_POP_DURATION,
+      1
+    );
+
+    let scale;
+
+    if (progress <= peakPoint) {
+      const sectionProgress = progress / peakPoint;
+      const eased = 1 - Math.pow(1 - sectionProgress, 3);
+
+      scale =
+        MERGE_POP_START_SCALE +
+        (MERGE_POP_PEAK_SCALE - MERGE_POP_START_SCALE) *
+          eased;
+    } else {
+      const sectionProgress =
+        (progress - peakPoint) / (1 - peakPoint);
+      const eased = 1 - Math.pow(1 - sectionProgress, 3);
+
+      scale =
+        MERGE_POP_PEAK_SCALE +
+        (1 - MERGE_POP_PEAK_SCALE) * eased;
+    }
+
+    sprite.xScale = baseXScale * scale;
+    sprite.yScale = baseYScale * scale;
+
+    if (progress < 1) {
+      window.requestAnimationFrame(updateMergeScale);
+      return;
+    }
+
+    sprite.xScale = baseXScale;
+    sprite.yScale = baseYScale;
+  }
+
+  window.requestAnimationFrame(updateMergeScale);
 }
 
 /**
@@ -1790,7 +2011,7 @@ function updateGameOverState() {
       body.bounds.min.y <= GAME_OVER_LINE_Y &&
       body.speed <= GAME_OVER_MAX_SPEED &&
       Math.abs(body.angularSpeed) <=
-      GAME_OVER_MAX_ANGULAR_SPEED
+        GAME_OVER_MAX_ANGULAR_SPEED
     );
   });
 
@@ -1833,6 +2054,9 @@ function endGame() {
     releaseDragPointer(activeDragPointerId);
   }
 
+  fruitGuideModal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+
   Runner.stop(runner);
   Render.stop(render);
 
@@ -1841,6 +2065,11 @@ function endGame() {
   gameContainer.classList.add("game-over", "danger-zone");
 
   finalScore.textContent = score;
+  finalHighScore.textContent = highScore;
+  newRecordMessage.classList.toggle(
+    "hidden",
+    !hasNewHighScore
+  );
   gameOverModal.classList.remove("hidden");
 }
 
@@ -1857,6 +2086,15 @@ function addScore(point) {
 
   score += point;
   scoreElement.textContent = score;
+
+  if (score <= highScore) {
+    return;
+  }
+
+  highScore = score;
+  hasNewHighScore = true;
+  highScoreElement.textContent = highScore;
+  saveHighScore();
 }
 
 /**

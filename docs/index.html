@@ -43,10 +43,17 @@
           <div class="game-info">
             <span id="playerName"></span>
 
-            <span class="score-box">
-              점수
-              <strong id="score">0</strong>
-            </span>
+            <div class="score-group" aria-label="점수 정보">
+              <span class="score-box">
+                점수
+                <strong id="score">0</strong>
+              </span>
+
+              <span class="score-box high-score-box">
+                최고
+                <strong id="highScore">0</strong>
+              </span>
+            </div>
           </div>
 
           <div class="guide-row">
@@ -84,6 +91,44 @@
         </aside>
       </div>
 
+      <button
+        id="fruitGuideButton"
+        class="fruit-guide-button"
+        type="button"
+        aria-haspopup="dialog"
+        aria-controls="fruitGuideModal"
+      >
+        도감
+      </button>
+
+      <div
+        id="fruitGuideModal"
+        class="fruit-guide-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="fruitGuideTitle"
+      >
+        <div class="fruit-guide-card">
+          <div class="fruit-guide-header">
+            <div>
+              <p class="fruit-guide-eyebrow">꼬박 합체 순서</p>
+              <h2 id="fruitGuideTitle">단계 도감</h2>
+            </div>
+
+            <button
+              id="closeFruitGuideButton"
+              class="fruit-guide-close-button"
+              type="button"
+              aria-label="단계 도감 닫기"
+            >
+              ×
+            </button>
+          </div>
+
+          <ol id="fruitGuideList" class="fruit-guide-list"></ol>
+        </div>
+      </div>
+
       <div
         id="gameOverModal"
         class="game-over-modal hidden"
@@ -95,10 +140,24 @@
           <p class="game-over-eyebrow">꼬박!</p>
           <h2 id="gameOverTitle">게임 오버</h2>
 
-          <p class="final-score-label">
-            최종 점수
-            <strong id="finalScore">0</strong>
+          <p
+            id="newRecordMessage"
+            class="new-record-message hidden"
+          >
+            신기록이에요! 🎉
           </p>
+
+          <div class="final-score-grid">
+            <p class="final-score-label">
+              최종 점수
+              <strong id="finalScore">0</strong>
+            </p>
+
+            <p class="final-score-label">
+              최고 점수
+              <strong id="finalHighScore">0</strong>
+            </p>
+          </div>
 
           <button id="closeGameOverButton" type="button">
             처음으로 돌아가기
