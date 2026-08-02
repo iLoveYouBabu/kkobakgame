@@ -1,0 +1,457 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  padding: 24px 16px;
+  font-family:
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  background: #fff8e7;
+  color: #222;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.container {
+  width: min(100%, 560px);
+  margin: 0 auto;
+  text-align: center;
+}
+
+.title-area h1 {
+  margin: 0 0 24px;
+}
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(100%, 480px);
+  margin: 0 auto;
+  padding: 24px;
+  border: 2px solid #222;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.login-card label {
+  font-weight: 700;
+  text-align: left;
+}
+
+.login-card input,
+.login-card button {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.login-card input {
+  border: 1px solid #aaa;
+}
+
+.login-card input:focus {
+  border-color: #48a84b;
+  outline: 3px solid rgb(72 168 75 / 15%);
+}
+
+.login-card button {
+  border: 0;
+  background: #65c466;
+  color: #152315;
+  font-weight: 700;
+}
+
+.login-card button:hover {
+  filter: brightness(0.95);
+}
+
+.game-screen {
+  width: 100%;
+}
+
+.game-layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 18px;
+  width: 100%;
+}
+
+.game-main {
+  flex: 0 0 360px;
+  width: 360px;
+}
+
+.game-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 9px 12px;
+  border: 1px solid rgb(41 41 41 / 12%);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.score-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+}
+
+.score-box strong {
+  min-width: 34px;
+  color: #222;
+  font-size: 18px;
+  text-align: right;
+}
+
+.guide-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.guide {
+  flex: 1;
+  margin: 0;
+  padding-left: 4px;
+  color: #777;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.test-game-over-button {
+  flex: none;
+  padding: 6px 8px;
+  border: 1px solid #e17055;
+  border-radius: 7px;
+  background: #fff;
+  color: #d63031;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.test-game-over-button:hover {
+  background: #fff1ef;
+}
+
+.game-container {
+  position: relative;
+  width: 360px;
+  aspect-ratio: 3 / 5;
+  overflow: hidden;
+  border: 3px solid #292929;
+  border-radius: 12px;
+  background: #fffaf0;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.game-container canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
+}
+
+.aim-fruit {
+  position: absolute;
+  z-index: 3;
+  top: 8px;
+  left: 50%;
+  width: 36px;
+  aspect-ratio: 1;
+  border: 2px solid #333;
+  border-radius: 50%;
+  background: #ff7675;
+  box-shadow:
+    inset 0 -5px 0 rgb(0 0 0 / 8%),
+    0 4px 8px rgb(0 0 0 / 14%);
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition:
+    width 120ms ease,
+    background-color 120ms ease,
+    opacity 120ms ease;
+  will-change: left, width;
+}
+
+.drop-guide {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgb(80 80 80 / 35%) 0 6px,
+    transparent 6px 12px
+  );
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.next-fruits-panel {
+  flex: 0 0 116px;
+  width: 116px;
+  margin-top: 65px;
+  padding: 14px 10px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 10%);
+}
+
+.next-fruits-panel h2 {
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgb(41 41 41 / 10%);
+  font-size: 14px;
+}
+
+.next-fruit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.next-fruit-item {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  grid-template-rows: 68px auto;
+  align-items: center;
+  min-height: 94px;
+  padding: 7px 6px;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.next-fruit-item:first-child {
+  outline: 2px solid rgb(101 196 102 / 55%);
+  background: #f5fff5;
+}
+
+.next-fruit-order {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #292929;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.next-fruit-preview {
+  grid-column: 2;
+  grid-row: 1;
+  place-self: center;
+  width: 36px;
+  aspect-ratio: 1;
+  border: 2px solid #333;
+  border-radius: 50%;
+  background: #ff7675;
+  box-shadow: inset 0 -4px 0 rgb(0 0 0 / 8%);
+}
+
+.next-fruit-name {
+  grid-column: 1 / 3;
+  grid-row: 2;
+  overflow: hidden;
+  color: #444;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message {
+  min-height: 24px;
+  margin-top: 14px;
+  color: #d33;
+  font-weight: 700;
+}
+
+.game-over-modal {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgb(0 0 0 / 55%);
+}
+
+.game-over-card {
+  width: min(100%, 320px);
+  padding: 28px 24px;
+  border-radius: 18px;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 25%);
+}
+
+.game-over-card h2 {
+  margin: 0 0 18px;
+  font-size: 28px;
+}
+
+.game-over-card p {
+  margin: 0 0 20px;
+  color: #666;
+}
+
+.game-over-card strong {
+  display: block;
+  margin-top: 6px;
+  color: #222;
+  font-size: 32px;
+}
+
+.game-over-card button {
+  width: 100%;
+  min-height: 46px;
+  border: 0;
+  border-radius: 10px;
+  background: #65c466;
+  font-weight: 700;
+}
+
+.game-container.game-over {
+  pointer-events: none;
+}
+
+/* 모달의 display:flex보다 우선하여 숨김 상태를 유지합니다. */
+.game-over-modal.hidden,
+.hidden {
+  display: none;
+}
+
+@media (max-width: 540px) {
+  body {
+    padding: 16px 10px;
+  }
+
+  .title-area h1 {
+    margin-bottom: 16px;
+    font-size: 26px;
+  }
+
+  .game-layout {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /*
+   * 모바일에서는 내부 요소를 game-layout의 직접 자식처럼 취급하여
+   * 점수판과 게임판 사이에 다음 과일 패널을 배치합니다.
+   */
+  .game-main {
+    display: contents;
+  }
+
+  /* 1. 닉네임과 점수 */
+  .game-info {
+    order: 1;
+    width: min(100%, 360px);
+    margin-bottom: 0;
+  }
+
+  /* 2. 다음 과일 1 → 2 → 3 */
+  .next-fruits-panel {
+    order: 2;
+    width: min(100%, 360px);
+    margin-top: 0;
+    padding: 10px 12px;
+  }
+
+  .next-fruits-panel h2 {
+    margin: 0 0 8px;
+    padding-bottom: 8px;
+  }
+
+  .next-fruit-list {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .next-fruit-item {
+    flex: 1;
+    min-width: 0;
+    min-height: 96px;
+  }
+
+  /* 3. 설명과 테스트 버튼 */
+  .guide-row {
+    order: 3;
+    width: min(100%, 360px);
+    margin-bottom: 0;
+  }
+
+  /* 4. 게임판 */
+  .game-container {
+    order: 4;
+    width: min(100%, 360px);
+  }
+}
+
+/* 사진형 과일 미리보기 */
+.aim-fruit,
+.next-fruit-preview {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  image-rendering: auto;
+}
+
+.aim-fruit {
+  transform-origin: top center;
+}
+
+.next-fruit-preview {
+  max-height: 69px;
+}
