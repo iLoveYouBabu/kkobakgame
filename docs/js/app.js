@@ -19,6 +19,13 @@ const MAX_MERGE_ANGULAR_VELOCITY = 0.04;
 const BODY_INERTIA_RATIO = 0.95;
 
 const HIGH_SCORE_STORAGE_KEY = "kkobakHighScore";
+
+const SUPABASE_URL = "https://lzhphyellvrprptndpfc.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_Lny6VEM72-yxMZbv5xkIbg_aDYyGURZ";
+const RANKING_TABLE = "kkobak_rankings";
+const RANKING_LIMIT = 50;
+
 const MERGE_POP_DURATION = 240;
 const MERGE_POP_START_SCALE = 0.85;
 const MERGE_POP_PEAK_SCALE = 1.1;
@@ -910,10 +917,21 @@ const fruitGuideList = document.querySelector("#fruitGuideList");
 const fruitGuideButton = document.querySelector("#fruitGuideButton");
 const fruitGuideModal = document.querySelector("#fruitGuideModal");
 const closeFruitGuideButton = document.querySelector("#closeFruitGuideButton");
+const rankingButton = document.querySelector("#rankingButton");
+const gameRankingButton = document.querySelector("#gameRankingButton");
+const rankingModal = document.querySelector("#rankingModal");
+const closeRankingButton = document.querySelector("#closeRankingButton");
+const refreshRankingButton = document.querySelector("#refreshRankingButton");
+const rankingStatus = document.querySelector("#rankingStatus");
+const rankingList = document.querySelector("#rankingList");
 const gameOverModal = document.querySelector("#gameOverModal");
 const finalScore = document.querySelector("#finalScore");
 const finalHighScore = document.querySelector("#finalHighScore");
 const newRecordMessage = document.querySelector("#newRecordMessage");
+const rankingSubmitMessage = document.querySelector("#rankingSubmitMessage");
+const openRankingFromGameOverButton = document.querySelector(
+  "#openRankingFromGameOverButton"
+);
 const closeGameOverButton = document.querySelector("#closeGameOverButton");
 
 let engine = null;
@@ -931,6 +949,11 @@ let activeDragPointerId = null;
 let isGameOver = false;
 let isStarting = false;
 let dangerStartedAt = null;
+let rankingReturnFocusElement = null;
+let isRankingLoading = false;
+let shouldResumeGameAfterRanking = false;
+
+const rankingClient = createRankingClient();
 
 // 같은 과일이 동시에 여러 번 합쳐지는 것을 방지하기 위한 Body ID 목록
 const mergingBodyIds = new Set();
@@ -950,8 +973,301 @@ nicknameInput.addEventListener("keydown", handleNicknameKeydown);
 fruitGuideButton.addEventListener("click", openFruitGuideModal);
 closeFruitGuideButton.addEventListener("click", closeFruitGuideModal);
 fruitGuideModal.addEventListener("click", handleFruitGuideBackdropClick);
+rankingButton.addEventListener("click", openRankingModal);
+gameRankingButton.addEventListener("click", openRankingModal);
+closeRankingButton.addEventListener("click", closeRankingModal);
+refreshRankingButton.addEventListener("click", loadRankings);
+rankingModal.addEventListener("click", handleRankingBackdropClick);
+openRankingFromGameOverButton.addEventListener(
+  "click",
+  openRankingModal
+);
 document.addEventListener("keydown", handleGlobalKeydown);
 closeGameOverButton.addEventListener("click", returnToStartScreen);
+
+/**
+ * 브라우저용 Supabase 클라이언트를 생성합니다.
+ * CDN 로딩에 실패해도 게임 자체는 계속 이용할 수 있습니다.
+ *
+ * @returns {Object|null} Supabase 클라이언트 또는 null
+ */
+function createRankingClient() {
+  const createClient = window.supabase?.createClient;
+
+  if (typeof createClient !== "function") {
+    console.warn("Supabase 라이브러리를 불러오지 못했습니다.");
+    return null;
+  }
+
+  return createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    }
+  );
+}
+
+/**
+ * 현재 게임에서 사용 중인 닉네임을 반환합니다.
+ *
+ * @returns {string} 앞뒤 공백을 제거한 닉네임
+ */
+function getCurrentNickname() {
+  return nicknameInput.value.trim();
+}
+
+/**
+ * 랭킹 모달을 열고 최신 상위 50개 기록을 조회합니다.
+ *
+ * @returns {void}
+ */
+function openRankingModal() {
+  rankingReturnFocusElement = document.activeElement;
+
+  shouldResumeGameAfterRanking = Boolean(
+    engine &&
+    runner &&
+    !isGameOver &&
+    !gameScreen.classList.contains("hidden")
+  );
+
+  if (shouldResumeGameAfterRanking) {
+    Runner.stop(runner);
+  }
+
+  fruitGuideModal.classList.add("hidden");
+  rankingModal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  closeRankingButton.focus();
+  void loadRankings();
+}
+
+/**
+ * 랭킹 모달을 닫고 열기 전 요소로 포커스를 되돌립니다.
+ *
+ * @returns {void}
+ */
+function closeRankingModal() {
+  if (rankingModal.classList.contains("hidden")) {
+    return;
+  }
+
+  rankingModal.classList.add("hidden");
+
+  if (fruitGuideModal.classList.contains("hidden")) {
+    document.body.classList.remove("modal-open");
+  }
+
+  if (
+    shouldResumeGameAfterRanking &&
+    engine &&
+    runner &&
+    !isGameOver
+  ) {
+    Runner.run(runner, engine);
+  }
+
+  shouldResumeGameAfterRanking = false;
+
+  if (
+    rankingReturnFocusElement instanceof HTMLElement &&
+    document.contains(rankingReturnFocusElement)
+  ) {
+    rankingReturnFocusElement.focus();
+  }
+}
+
+/**
+ * 랭킹 카드 바깥의 어두운 영역을 누르면 모달을 닫습니다.
+ *
+ * @param {MouseEvent} event - 모달 클릭 이벤트
+ * @returns {void}
+ */
+function handleRankingBackdropClick(event) {
+  if (event.target === rankingModal) {
+    closeRankingModal();
+  }
+}
+
+/**
+ * Supabase에서 점수순 상위 50개 기록을 조회합니다.
+ * 동점일 때는 최고 점수를 먼저 달성한 기록이 위에 표시됩니다.
+ *
+ * @returns {Promise<void>} 랭킹 조회 완료 Promise
+ */
+async function loadRankings() {
+  if (isRankingLoading) {
+    return;
+  }
+
+  if (!rankingClient) {
+    rankingStatus.textContent =
+      "랭킹 서버에 연결할 수 없습니다.";
+    rankingList.replaceChildren();
+    return;
+  }
+
+  isRankingLoading = true;
+  refreshRankingButton.disabled = true;
+  rankingStatus.textContent = "랭킹을 불러오는 중입니다.";
+  rankingList.setAttribute("aria-busy", "true");
+
+  try {
+    const { data, error } = await rankingClient
+      .from(RANKING_TABLE)
+      .select("nickname, score, achieved_at")
+      .order("score", { ascending: false })
+      .order("achieved_at", { ascending: true })
+      .limit(RANKING_LIMIT);
+
+    if (error) {
+      throw error;
+    }
+
+    renderRankings(data || []);
+  } catch (error) {
+    console.error("랭킹 조회 실패:", error);
+    rankingStatus.textContent =
+      "랭킹을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
+    rankingList.replaceChildren();
+  } finally {
+    isRankingLoading = false;
+    refreshRankingButton.disabled = false;
+    rankingList.removeAttribute("aria-busy");
+  }
+}
+
+/**
+ * 조회한 랭킹 데이터를 모달 목록에 표시합니다.
+ *
+ * @param {Array<Object>} rankings - Supabase 랭킹 행 목록
+ * @returns {void}
+ */
+function renderRankings(rankings) {
+  if (rankings.length === 0) {
+    rankingStatus.textContent = "아직 등록된 기록이 없습니다.";
+    rankingList.replaceChildren();
+    return;
+  }
+
+  const currentNickname = getCurrentNickname();
+  const items = rankings.map((ranking, index) => {
+    const item = document.createElement("li");
+    const rank = document.createElement("span");
+    const nickname = document.createElement("strong");
+    const scoreValue = document.createElement("span");
+    const achievedAt = document.createElement("time");
+
+    item.className = "ranking-item";
+
+    if (ranking.nickname === currentNickname) {
+      item.classList.add("is-current-player");
+    }
+
+    if (index < 3) {
+      item.classList.add(`ranking-top-${index + 1}`);
+    }
+
+    rank.className = "ranking-rank";
+    rank.textContent = String(index + 1);
+
+    nickname.className = "ranking-nickname";
+    nickname.textContent = ranking.nickname;
+    nickname.title = ranking.nickname;
+
+    scoreValue.className = "ranking-score";
+    scoreValue.textContent = Number(ranking.score).toLocaleString("ko-KR");
+
+    achievedAt.className = "ranking-date";
+    achievedAt.dateTime = ranking.achieved_at || "";
+    achievedAt.textContent = formatRankingDate(ranking.achieved_at);
+
+    item.append(rank, nickname, scoreValue, achievedAt);
+    return item;
+  });
+
+  rankingStatus.textContent =
+    `상위 ${rankings.length}개의 기록입니다.`;
+  rankingList.replaceChildren(...items);
+}
+
+/**
+ * Supabase의 날짜 문자열을 한국식 날짜로 변환합니다.
+ *
+ * @param {string|null} value - timestamptz 날짜 문자열
+ * @returns {string} 표시용 날짜
+ */
+function formatRankingDate(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "2-digit",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
+}
+
+/**
+ * 게임오버 점수를 Supabase 함수로 제출합니다.
+ * DB 함수가 같은 닉네임의 기존 점수보다 높을 때만 갱신합니다.
+ *
+ * @returns {Promise<void>} 점수 제출 완료 Promise
+ */
+async function submitRankingScore() {
+  const nickname = getCurrentNickname();
+
+  if (!rankingClient) {
+    rankingSubmitMessage.textContent =
+      "랭킹 서버에 연결하지 못했습니다.";
+    rankingSubmitMessage.classList.add("is-error");
+    return;
+  }
+
+  if (!nickname || score <= 0) {
+    rankingSubmitMessage.textContent =
+      score <= 0 ? "등록할 점수가 없습니다." : "닉네임을 확인해주세요.";
+    return;
+  }
+
+  rankingSubmitMessage.classList.remove("is-error", "is-success");
+  rankingSubmitMessage.textContent = "랭킹 기록 확인 중...";
+
+  try {
+    const { error } = await rankingClient.rpc(
+      "submit_kkobak_score",
+      {
+        p_nickname: nickname,
+        p_score: score
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    rankingSubmitMessage.textContent =
+      "랭킹 기록을 확인했습니다.";
+    rankingSubmitMessage.classList.add("is-success");
+  } catch (error) {
+    console.error("랭킹 등록 실패:", error);
+    rankingSubmitMessage.textContent =
+      "랭킹 등록에 실패했습니다. 랭킹 창에서 다시 확인해주세요.";
+    rankingSubmitMessage.classList.add("is-error");
+  }
+}
 
 /**
  * 브라우저에 저장된 최고 점수를 안전하게 불러옵니다.
@@ -1029,6 +1345,7 @@ function renderFruitGuide() {
  * @returns {void}
  */
 function openFruitGuideModal() {
+  rankingModal.classList.add("hidden");
   fruitGuideModal.classList.remove("hidden");
   document.body.classList.add("modal-open");
   closeFruitGuideButton.focus();
@@ -1069,10 +1386,16 @@ function handleFruitGuideBackdropClick(event) {
  * @returns {void}
  */
 function handleGlobalKeydown(event) {
-  if (
-    event.key === "Escape" &&
-    !fruitGuideModal.classList.contains("hidden")
-  ) {
+  if (event.key !== "Escape") {
+    return;
+  }
+
+  if (!rankingModal.classList.contains("hidden")) {
+    closeRankingModal();
+    return;
+  }
+
+  if (!fruitGuideModal.classList.contains("hidden")) {
     closeFruitGuideModal();
   }
 }
@@ -1126,6 +1449,12 @@ async function startGame() {
 
   if (!nickname) {
     message.textContent = "닉네임을 입력해주세요.";
+    nicknameInput.focus();
+    return;
+  }
+
+  if (nickname.length > 50) {
+    message.textContent = "닉네임은 50자 이하로 입력해주세요.";
     nicknameInput.focus();
     return;
   }
@@ -2055,6 +2384,7 @@ function endGame() {
   }
 
   fruitGuideModal.classList.add("hidden");
+  rankingModal.classList.add("hidden");
   document.body.classList.remove("modal-open");
 
   Runner.stop(runner);
@@ -2070,7 +2400,10 @@ function endGame() {
     "hidden",
     !hasNewHighScore
   );
+  rankingSubmitMessage.textContent = "";
+  rankingSubmitMessage.classList.remove("is-error", "is-success");
   gameOverModal.classList.remove("hidden");
+  void submitRankingScore();
 }
 
 /**
@@ -2103,5 +2436,6 @@ function addScore(point) {
  * @returns {void}
  */
 function returnToStartScreen() {
+  shouldResumeGameAfterRanking = false;
   window.location.reload();
 }

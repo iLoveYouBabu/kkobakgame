@@ -91,6 +91,24 @@ button:disabled {
   filter: brightness(0.95);
 }
 
+/* 처음 화면의 게임 시작 버튼 아래에 표시되는 랭킹 버튼입니다. */
+.login-card .ranking-button {
+  margin-top: 2px;
+  border: 1px solid rgb(41 41 41 / 16%);
+  background: #fffaf0;
+  color: #444;
+  box-shadow: none;
+}
+
+.login-card .ranking-button:hover:not(:disabled) {
+  background: #fff1cc;
+  filter: none;
+}
+
+.login-card .ranking-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
 .game-screen {
   width: 100%;
 }
@@ -485,12 +503,20 @@ button:disabled {
   color: #d98000;
 }
 
-/* 게임 화면 오른쪽 아래에 고정되는 작은 도감 버튼입니다. */
-.fruit-guide-button {
+/* 게임 화면 오른쪽 아래에 랭킹과 도감 버튼을 세로로 배치합니다. */
+.game-floating-actions {
   position: fixed;
   z-index: 850;
   right: max(14px, env(safe-area-inset-right));
   bottom: max(14px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.game-ranking-button,
+.fruit-guide-button {
   min-width: 58px;
   min-height: 38px;
   padding: 8px 13px;
@@ -504,11 +530,18 @@ button:disabled {
   backdrop-filter: blur(8px);
 }
 
+.game-ranking-button {
+  background: rgb(255 248 220 / 96%);
+  color: #805400;
+}
+
+.game-ranking-button:hover,
 .fruit-guide-button:hover {
   transform: translateY(-1px);
   box-shadow: 0 9px 25px rgb(0 0 0 / 20%);
 }
 
+.game-ranking-button:active,
 .fruit-guide-button:active {
   transform: translateY(0);
 }
@@ -698,9 +731,14 @@ body.modal-open {
 }
 
 @media (max-width: 540px) {
-  .fruit-guide-button {
+  .game-floating-actions {
     right: max(10px, env(safe-area-inset-right));
     bottom: max(10px, env(safe-area-inset-bottom));
+    gap: 6px;
+  }
+
+  .game-ranking-button,
+  .fruit-guide-button {
     min-width: 54px;
     min-height: 36px;
     padding: 7px 12px;
@@ -736,5 +774,277 @@ body.modal-open {
 
   .fruit-guide-name {
     font-size: 10px;
+  }
+}
+
+
+/* 긴 닉네임이 점수 영역을 밀어내지 않도록 한 줄로 줄입니다. */
+#playerName {
+  min-width: 0;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking-modal {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgb(0 0 0 / 60%);
+  backdrop-filter: blur(3px);
+}
+
+.ranking-modal.hidden {
+  display: none;
+}
+
+.ranking-card {
+  width: min(100%, 580px);
+  max-height: min(86vh, 720px);
+  padding: 20px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 18px 46px rgb(0 0 0 / 28%);
+  overflow: hidden;
+}
+
+.ranking-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.ranking-eyebrow {
+  margin: 0 0 3px;
+  color: #48a84b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.ranking-header h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.ranking-close-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f2f2f2;
+  color: #444;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.ranking-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.ranking-status {
+  min-width: 0;
+  margin: 0;
+  color: #777;
+  font-size: 12px;
+  text-align: left;
+}
+
+.ranking-refresh-button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 6px 11px;
+  border: 1px solid rgb(41 41 41 / 13%);
+  border-radius: 999px;
+  background: #fffaf0;
+  color: #555;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ranking-column-header,
+.ranking-item {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 92px 86px;
+  align-items: center;
+  column-gap: 8px;
+}
+
+.ranking-column-header {
+  padding: 8px 10px;
+  border-top: 1px solid rgb(41 41 41 / 10%);
+  border-bottom: 1px solid rgb(41 41 41 / 10%);
+  color: #888;
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.ranking-column-header span:nth-child(2) {
+  text-align: left;
+}
+
+.ranking-list {
+  max-height: min(58vh, 500px);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.ranking-item {
+  min-height: 48px;
+  padding: 7px 10px;
+  border-bottom: 1px solid rgb(41 41 41 / 7%);
+  background: #fff;
+  font-size: 13px;
+}
+
+.ranking-item:nth-child(even) {
+  background: #fffdf7;
+}
+
+.ranking-item.is-current-player {
+  outline: 2px solid rgb(101 196 102 / 55%);
+  outline-offset: -2px;
+  background: #f5fff5;
+}
+
+.ranking-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  color: #555;
+  font-weight: 900;
+}
+
+.ranking-top-1 .ranking-rank {
+  background: #ffd45c;
+  color: #6f4d00;
+}
+
+.ranking-top-2 .ranking-rank {
+  background: #dfe4ea;
+  color: #4b5563;
+}
+
+.ranking-top-3 .ranking-rank {
+  background: #e9b88f;
+  color: #704019;
+}
+
+.ranking-nickname {
+  min-width: 0;
+  overflow: hidden;
+  color: #333;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking-score {
+  color: #222;
+  font-weight: 900;
+  text-align: right;
+}
+
+.ranking-date {
+  color: #888;
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ranking-submit-message {
+  min-height: 19px;
+  margin: -6px 0 12px;
+  color: #777;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ranking-submit-message.is-success {
+  color: #2e8b3c;
+}
+
+.ranking-submit-message.is-error {
+  color: #d33;
+}
+
+.game-over-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 8px;
+}
+
+.game-over-card .secondary-button {
+  border: 1px solid rgb(41 41 41 / 13%);
+  background: #fffaf0;
+  color: #444;
+}
+
+@media (max-width: 540px) {
+  #playerName {
+    max-width: 110px;
+  }
+.ranking-modal {
+    align-items: flex-end;
+    padding: 12px;
+  }
+
+  .ranking-card {
+    width: 100%;
+    max-height: 82vh;
+    padding: 17px 12px 16px;
+    border-radius: 18px;
+  }
+
+  .ranking-column-header,
+  .ranking-item {
+    grid-template-columns: 36px minmax(0, 1fr) 66px 70px;
+    column-gap: 5px;
+  }
+
+  .ranking-column-header {
+    padding-inline: 5px;
+  }
+
+  .ranking-item {
+    padding-inline: 5px;
+    font-size: 12px;
+  }
+
+  .ranking-rank {
+    width: 25px;
+    height: 25px;
+  }
+
+  .ranking-date {
+    font-size: 9px;
+  }
+
+  .game-over-actions {
+    grid-template-columns: 1fr;
   }
 }

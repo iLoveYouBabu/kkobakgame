@@ -1,172 +1,142 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>꼬박게임</title>
-
-  <link rel="stylesheet" href="./css/style.css">
-
-  <script
-    src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js"
-    defer
-  ></script>
-  <script src="./js/app.js" defer></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>꼬박게임</title>
+<link href="./css/style.css" rel="stylesheet"/>
+<script defer="" src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js"></script>
+<script defer="" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer="" src="./js/app.js"></script>
 </head>
-
 <body>
-  <main class="container">
-    <header class="title-area">
-      <h1>꼬박게임 🍉</h1>
-    </header>
-
-    <section id="loginScreen" class="login-card">
-      <label for="nickname">닉네임</label>
-
-      <input
-        id="nickname"
-        type="text"
-        maxlength="10"
-        placeholder="닉네임을 입력하세요"
-        autocomplete="nickname"
-      >
-
-      <button id="startButton" type="button">
+<main class="container">
+<header class="title-area">
+<h1>꼬박게임 🍉</h1>
+</header>
+<section class="login-card" id="loginScreen">
+<label for="nickname">닉네임</label>
+<input autocomplete="nickname" id="nickname" maxlength="50" placeholder="닉네임을 입력하세요" type="text"/>
+<button id="startButton" type="button">
         게임 시작
-      </button>
-    </section>
-
-    <section id="gameScreen" class="game-screen hidden">
-      <div class="game-layout">
-        <div class="game-main">
-          <div class="game-info">
-            <span id="playerName"></span>
-
-            <div class="score-group" aria-label="점수 정보">
-              <span class="score-box">
+      </button><button aria-controls="rankingModal" aria-haspopup="dialog" class="ranking-button" id="rankingButton" type="button">랭킹 보기</button>
+</section>
+<section class="game-screen hidden" id="gameScreen">
+<div class="game-layout">
+<div class="game-main">
+<div class="game-info">
+<span id="playerName"></span>
+<div aria-label="점수 정보" class="score-group">
+<span class="score-box">
                 점수
                 <strong id="score">0</strong>
-              </span>
-
-              <span class="score-box high-score-box">
+</span>
+<span class="score-box high-score-box">
                 최고
                 <strong id="highScore">0</strong>
-              </span>
-            </div>
-          </div>
-
-          <div class="guide-row">
-            <p class="guide">
+</span>
+</div>
+</div>
+<div class="guide-row">
+<p class="guide">
               PC는 클릭, 모바일은 드래그 후 놓아주세요.
             </p>
-          </div>
+</div>
+<div class="game-container" id="gameContainer">
+<div aria-hidden="true" class="aim-fruit hidden" id="aimFruit"></div>
+<div aria-hidden="true" class="drop-guide hidden" id="dropGuide"></div>
+<div aria-hidden="true" class="game-over-line hidden" id="gameOverLine">
+<span>위험선</span>
+</div>
+</div>
+</div>
+<aside aria-label="다음 과일 목록" class="next-fruits-panel">
+<h2>다음 과일</h2>
+<ol class="next-fruit-list" id="nextFruitList"></ol>
+</aside>
+</div>
 
-          <div id="gameContainer" class="game-container">
-            <div
-              id="aimFruit"
-              class="aim-fruit hidden"
-              aria-hidden="true"
-            ></div>
-
-            <div
-              id="dropGuide"
-              class="drop-guide hidden"
-              aria-hidden="true"
-            ></div>
-
-            <div
-              id="gameOverLine"
-              class="game-over-line hidden"
-              aria-hidden="true"
-            >
-              <span>위험선</span>
-            </div>
-          </div>
-        </div>
-
-        <aside class="next-fruits-panel" aria-label="다음 과일 목록">
-          <h2>다음 과일</h2>
-          <ol id="nextFruitList" class="next-fruit-list"></ol>
-        </aside>
-      </div>
-
-      <button
-        id="fruitGuideButton"
-        class="fruit-guide-button"
-        type="button"
-        aria-haspopup="dialog"
-        aria-controls="fruitGuideModal"
-      >
+<div aria-label="게임 보조 메뉴" class="game-floating-actions">
+<button aria-controls="rankingModal" aria-haspopup="dialog" class="game-ranking-button" id="gameRankingButton" type="button">
+        랭킹
+      </button>
+<button aria-controls="fruitGuideModal" aria-haspopup="dialog" class="fruit-guide-button" id="fruitGuideButton" type="button">
         도감
       </button>
-
-      <div
-        id="fruitGuideModal"
-        class="fruit-guide-modal hidden"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="fruitGuideTitle"
-      >
-        <div class="fruit-guide-card">
-          <div class="fruit-guide-header">
-            <div>
-              <p class="fruit-guide-eyebrow">꼬박 합체 순서</p>
-              <h2 id="fruitGuideTitle">단계 도감</h2>
-            </div>
-
-            <button
-              id="closeFruitGuideButton"
-              class="fruit-guide-close-button"
-              type="button"
-              aria-label="단계 도감 닫기"
-            >
+</div>
+<div aria-labelledby="fruitGuideTitle" aria-modal="true" class="fruit-guide-modal hidden" id="fruitGuideModal" role="dialog">
+<div class="fruit-guide-card">
+<div class="fruit-guide-header">
+<div>
+<p class="fruit-guide-eyebrow">꼬박 합체 순서</p>
+<h2 id="fruitGuideTitle">단계 도감</h2>
+</div>
+<button aria-label="단계 도감 닫기" class="fruit-guide-close-button" id="closeFruitGuideButton" type="button">
               ×
             </button>
-          </div>
+</div>
+<ol class="fruit-guide-list" id="fruitGuideList"></ol>
+</div>
+</div>
 
-          <ol id="fruitGuideList" class="fruit-guide-list"></ol>
-        </div>
-      </div>
-
-      <div
-        id="gameOverModal"
-        class="game-over-modal hidden"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="gameOverTitle"
-      >
-        <div class="game-over-card">
-          <p class="game-over-eyebrow">꼬박!</p>
-          <h2 id="gameOverTitle">게임 오버</h2>
-
-          <p
-            id="newRecordMessage"
-            class="new-record-message hidden"
-          >
+<div aria-labelledby="gameOverTitle" aria-modal="true" class="game-over-modal hidden" id="gameOverModal" role="dialog">
+<div class="game-over-card">
+<p class="game-over-eyebrow">꼬박!</p>
+<h2 id="gameOverTitle">게임 오버</h2>
+<p class="new-record-message hidden" id="newRecordMessage">
             신기록이에요! 🎉
           </p>
-
-          <div class="final-score-grid">
-            <p class="final-score-label">
+<div class="final-score-grid">
+<p class="final-score-label">
               최종 점수
               <strong id="finalScore">0</strong>
-            </p>
-
-            <p class="final-score-label">
+</p>
+<p class="final-score-label">
               최고 점수
               <strong id="finalHighScore">0</strong>
+</p>
+</div>
+<p aria-live="polite" class="ranking-submit-message" id="rankingSubmitMessage"></p>
+<div class="game-over-actions">
+<button class="secondary-button" id="openRankingFromGameOverButton" type="button">
+              랭킹 보기
+            </button>
+<button id="closeGameOverButton" type="button">
+              처음으로 돌아가기
+            </button>
+</div>
+</div>
+</div>
+</section><div aria-labelledby="rankingTitle" aria-modal="true" class="ranking-modal hidden" id="rankingModal" role="dialog">
+<div class="ranking-card">
+<div class="ranking-header">
+<div>
+<p class="ranking-eyebrow">꼬박 최고 기록</p>
+<h2 id="rankingTitle">전체 랭킹</h2>
+</div>
+<button aria-label="랭킹 닫기" class="ranking-close-button" id="closeRankingButton" type="button">
+              ×
+            </button>
+</div>
+<div class="ranking-toolbar">
+<p aria-live="polite" class="ranking-status" id="rankingStatus">
+              랭킹을 불러오는 중입니다.
             </p>
-          </div>
-
-          <button id="closeGameOverButton" type="button">
-            처음으로 돌아가기
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <p id="message" class="message" aria-live="polite"></p>
-  </main>
+<button class="ranking-refresh-button" id="refreshRankingButton" type="button">
+              새로고침
+            </button>
+</div>
+<div aria-hidden="true" class="ranking-column-header">
+<span>순위</span>
+<span>닉네임</span>
+<span>점수</span>
+<span>달성일</span>
+</div>
+<ol class="ranking-list" id="rankingList"></ol>
+</div>
+</div>
+<p aria-live="polite" class="message" id="message"></p>
+</main>
 </body>
 </html>
