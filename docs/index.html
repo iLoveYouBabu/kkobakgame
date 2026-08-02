@@ -8,17 +8,10 @@
 
   <link rel="stylesheet" href="./css/style.css">
 
-  <!-- 처음 등장할 수 있는 과일 이미지를 미리 불러옵니다. -->
-  <link rel="preload" as="image" href="./assets/fruits/fruit-1.png">
-  <link rel="preload" as="image" href="./assets/fruits/fruit-2.png">
-  <link rel="preload" as="image" href="./assets/fruits/fruit-3.png">
-
-  <!-- 물리엔진 -->
   <script
     src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js"
     defer
   ></script>
-
   <script src="./js/app.js" defer></script>
 </head>
 
@@ -28,7 +21,6 @@
       <h1>꼬박게임 🍉</h1>
     </header>
 
-    <!-- 닉네임 입력 -->
     <section id="loginScreen" class="login-card">
       <label for="nickname">닉네임</label>
 
@@ -37,6 +29,7 @@
         type="text"
         maxlength="10"
         placeholder="닉네임을 입력하세요"
+        autocomplete="nickname"
       >
 
       <button id="startButton" type="button">
@@ -44,10 +37,8 @@
       </button>
     </section>
 
-    <!-- 게임 화면 -->
     <section id="gameScreen" class="game-screen hidden">
       <div class="game-layout">
-        <!-- 점수, 설명, 게임판 영역 -->
         <div class="game-main">
           <div class="game-info">
             <span id="playerName"></span>
@@ -62,41 +53,37 @@
             <p class="guide">
               PC는 클릭, 모바일은 드래그 후 놓아주세요.
             </p>
-
-            <button
-              id="testGameOverButton"
-              class="test-game-over-button"
-              type="button"
-            >
-              게임오버 테스트
-            </button>
           </div>
 
           <div id="gameContainer" class="game-container">
-            <!-- 물리엔진에 들어가기 전 대기 중인 과일 -->
             <div
               id="aimFruit"
               class="aim-fruit hidden"
               aria-hidden="true"
             ></div>
 
-            <!-- 과일의 낙하 위치를 알려주는 세로선 -->
             <div
               id="dropGuide"
               class="drop-guide hidden"
               aria-hidden="true"
             ></div>
+
+            <div
+              id="gameOverLine"
+              class="game-over-line hidden"
+              aria-hidden="true"
+            >
+              <span>위험선</span>
+            </div>
           </div>
         </div>
 
-        <!-- PC에서는 게임판 오른쪽, 모바일에서는 점수판 아래 -->
         <aside class="next-fruits-panel" aria-label="다음 과일 목록">
           <h2>다음 과일</h2>
           <ol id="nextFruitList" class="next-fruit-list"></ol>
         </aside>
       </div>
 
-      <!-- 게임 오버 화면 -->
       <div
         id="gameOverModal"
         class="game-over-modal hidden"
@@ -105,9 +92,10 @@
         aria-labelledby="gameOverTitle"
       >
         <div class="game-over-card">
+          <p class="game-over-eyebrow">꼬박!</p>
           <h2 id="gameOverTitle">게임 오버</h2>
 
-          <p>
+          <p class="final-score-label">
             최종 점수
             <strong id="finalScore">0</strong>
           </p>
@@ -119,7 +107,7 @@
       </div>
     </section>
 
-    <p id="message" class="message"></p>
+    <p id="message" class="message" aria-live="polite"></p>
   </main>
 </body>
 </html>
