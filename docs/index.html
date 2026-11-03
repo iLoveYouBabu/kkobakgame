@@ -17,7 +17,7 @@
 </header>
 <section class="login-card" id="loginScreen">
 <label for="nickname">닉네임</label>
-<input autocomplete="nickname" id="nickname" maxlength="50" placeholder="닉네임을 입력하세요" type="text"/>
+<input autocomplete="nickname" id="nickname" maxlength="50" placeholder="한글 초성, 숫자, ASCII 특수문자" type="text"/>
 <button id="startButton" type="button">
         게임 시작
       </button><button aria-controls="rankingModal" aria-haspopup="dialog" class="ranking-button" id="rankingButton" type="button">랭킹 보기</button>
@@ -113,7 +113,8 @@
 <div class="ranking-header">
 <div>
 <p class="ranking-eyebrow">꼬박 최고 기록</p>
-<h2 id="rankingTitle">전체 랭킹</h2>
+<h2 id="rankingTitle">최근 7일 랭킹</h2>
+<p class="ranking-period" id="rankingPeriod"></p>
 </div>
 <button aria-label="랭킹 닫기" class="ranking-close-button" id="closeRankingButton" type="button">
               ×

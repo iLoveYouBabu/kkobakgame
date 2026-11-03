@@ -23,8 +23,7 @@ const HIGH_SCORE_STORAGE_KEY = "kkobakHighScore";
 const SUPABASE_URL = "https://lzhphyellvrprptndpfc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_Lny6VEM72-yxMZbv5xkIbg_aDYyGURZ";
-const RANKING_TABLE = "kkobak_rankings";
-const RANKING_LIMIT = 50;
+const NICKNAME_PATTERN = /^[ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎᄀ-ᄒ\x21-\x40\x5b-\x60\x7b-\x7e]{1,50}$/u;
 
 const MERGE_POP_DURATION = 240;
 const MERGE_POP_START_SCALE = 0.85;
@@ -1010,6 +1009,7 @@ const gameRankingButton = document.querySelector("#gameRankingButton");
 const rankingModal = document.querySelector("#rankingModal");
 const closeRankingButton = document.querySelector("#closeRankingButton");
 const refreshRankingButton = document.querySelector("#refreshRankingButton");
+const rankingPeriod = document.querySelector("#rankingPeriod");
 const rankingStatus = document.querySelector("#rankingStatus");
 const rankingList = document.querySelector("#rankingList");
 const gameOverModal = document.querySelector("#gameOverModal");
@@ -1193,6 +1193,17 @@ async function loadRankings() {
     return;
   }
 
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  const formatDay = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "long",
+    day: "numeric"
+  });
+  const startDay = formatDay.format(now - 6 * day);
+  const endDay = formatDay.format(now);
+  rankingPeriod.textContent = `${startDay} 부터 ${endDay} 까지`;
+
   if (!rankingClient) {
     rankingStatus.textContent =
       "랭킹 서버에 연결할 수 없습니다.";
@@ -1206,12 +1217,7 @@ async function loadRankings() {
   rankingList.setAttribute("aria-busy", "true");
 
   try {
-    const { data, error } = await rankingClient
-      .from(RANKING_TABLE)
-      .select("nickname, score, achieved_at")
-      .order("score", { ascending: false })
-      .order("achieved_at", { ascending: true })
-      .limit(RANKING_LIMIT);
+    const { data, error } = await rankingClient.rpc("get_kkobak_weekly_rankings");
 
     if (error) {
       throw error;
@@ -1238,7 +1244,7 @@ async function loadRankings() {
  */
 function renderRankings(rankings) {
   if (rankings.length === 0) {
-    rankingStatus.textContent = "아직 등록된 기록이 없습니다.";
+    rankingStatus.textContent = "최근 7일 동안 등록된 기록이 없습니다.";
     rankingList.replaceChildren();
     return;
   }
@@ -1324,9 +1330,8 @@ async function submitRankingScore() {
     return;
   }
 
-  if (!nickname || score <= 0) {
-    rankingSubmitMessage.textContent =
-      score <= 0 ? "등록할 점수가 없습니다." : "닉네임을 확인해주세요.";
+  if (!NICKNAME_PATTERN.test(nickname)) {
+    rankingSubmitMessage.textContent = "닉네임을 확인해주세요.";
     return;
   }
 
@@ -1335,7 +1340,7 @@ async function submitRankingScore() {
 
   try {
     const { error } = await rankingClient.rpc(
-      "submit_kkobak_score",
+      "record_kkobak_score",
       {
         p_nickname: nickname,
         p_score: score
@@ -1543,6 +1548,12 @@ async function startGame() {
 
   if (nickname.length > 50) {
     message.textContent = "닉네임은 50자 이하로 입력해주세요.";
+    nicknameInput.focus();
+    return;
+  }
+
+  if (!NICKNAME_PATTERN.test(nickname)) {
+    message.textContent = "닉네임에는 한글 초성, 숫자, ASCII 특수문자만 사용할 수 있어요.";
     nicknameInput.focus();
     return;
   }

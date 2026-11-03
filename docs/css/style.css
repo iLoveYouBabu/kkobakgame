@@ -834,6 +834,12 @@ body.modal-open {
   font-size: 24px;
 }
 
+.ranking-period {
+  margin: 6px 0 0;
+  color: #666;
+  font-size: 12px;
+}
+
 .ranking-close-button {
   display: inline-flex;
   align-items: center;
