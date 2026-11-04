@@ -754,6 +754,11 @@ body.modal-open {
 }
 
 @media (max-width: 540px) {
+  .game-screen {
+    /* 고정 메뉴 위로 게임판 하단을 스크롤할 수 있는 공간입니다. */
+    padding-bottom: calc(136px + env(safe-area-inset-bottom));
+  }
+
   .game-floating-actions {
     right: max(10px, env(safe-area-inset-right));
     bottom: max(10px, env(safe-area-inset-bottom));
