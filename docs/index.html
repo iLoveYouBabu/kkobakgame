@@ -15,13 +15,27 @@
 <header class="title-area">
 <h1>꼬박게임 🍉</h1>
 </header>
-<section class="login-card" id="loginScreen">
+<div id="loginScreen">
+<section class="login-card">
 <label for="nickname">닉네임</label>
 <input autocomplete="nickname" id="nickname" maxlength="50" placeholder="한글 초성, 숫자, ASCII 특수문자" type="text"/>
 <button id="startButton" type="button">
         게임 시작
-      </button><button aria-controls="rankingModal" aria-haspopup="dialog" class="ranking-button" id="rankingButton" type="button">랭킹 보기</button>
+      </button><button aria-controls="rankingModal" aria-haspopup="dialog" class="ranking-button" id="rankingButton" type="button">전체 랭킹 보기</button>
 </section>
+<p aria-live="polite" class="message" id="message"></p>
+<section aria-labelledby="weeklyRankingTitle" class="weekly-rankings" data-ranking-scope="weekly" id="weeklyRankings">
+<div class="weekly-ranking-header">
+<div>
+<h2 id="weeklyRankingTitle">최근 7일 랭킹 TOP 10</h2>
+<p class="ranking-period"></p>
+</div>
+<button class="ranking-refresh-button" type="button">새로고침</button>
+</div>
+<p aria-live="polite" class="ranking-status">랭킹을 불러오는 중입니다.</p>
+<ol class="ranking-list"></ol>
+</section>
+</div>
 <section class="game-screen hidden" id="gameScreen">
 <div class="game-layout">
 <div class="game-main">
@@ -64,7 +78,18 @@
 <button aria-controls="fruitGuideModal" aria-haspopup="dialog" class="fruit-guide-button" id="fruitGuideButton" type="button">
         도감
       </button>
+<button aria-controls="returnToStartDialog" aria-haspopup="dialog" class="game-return-button" id="openReturnToStartButton" type="button">
+        메인으로
+      </button>
 </div>
+<dialog aria-describedby="returnToStartMessage" aria-labelledby="returnToStartTitle" class="game-over-card return-to-start-dialog" id="returnToStartDialog">
+<h2 id="returnToStartTitle">메인으로 돌아갈까요?</h2>
+<p id="returnToStartMessage">메인으로 돌아가면 이번 점수는 저장되지 않아요.</p>
+<form class="game-over-actions" method="dialog">
+<button autofocus type="submit">계속하기</button>
+<button class="secondary-button" id="confirmReturnToStartButton" type="button">메인으로</button>
+</form>
+</dialog>
 <div aria-labelledby="fruitGuideTitle" aria-modal="true" class="fruit-guide-modal hidden" id="fruitGuideModal" role="dialog">
 <div class="fruit-guide-card">
 <div class="fruit-guide-header">
@@ -113,20 +138,21 @@
 <div class="ranking-header">
 <div>
 <p class="ranking-eyebrow">꼬박 최고 기록</p>
-<h2 id="rankingTitle">최근 7일 랭킹</h2>
-<p class="ranking-period" id="rankingPeriod"></p>
+<h2 id="rankingTitle">랭킹</h2>
 </div>
 <button aria-label="랭킹 닫기" class="ranking-close-button" id="closeRankingButton" type="button">
               ×
             </button>
 </div>
+<div aria-label="랭킹 기간" class="ranking-tabs" role="tablist">
+<button aria-controls="modalWeeklyRankings" aria-selected="true" id="rankingWeeklyTab" role="tab" type="button">주간 TOP 10</button>
+<button aria-controls="modalAllTimeRankings" aria-selected="false" id="rankingAllTimeTab" role="tab" tabindex="-1" type="button">전체 TOP 50</button>
+</div>
+<div aria-labelledby="rankingWeeklyTab" class="ranking-tab-panel" data-ranking-scope="weekly" id="modalWeeklyRankings" role="tabpanel" tabindex="0">
+<p class="ranking-period"></p>
 <div class="ranking-toolbar">
-<p aria-live="polite" class="ranking-status" id="rankingStatus">
-              랭킹을 불러오는 중입니다.
-            </p>
-<button class="ranking-refresh-button" id="refreshRankingButton" type="button">
-              새로고침
-            </button>
+<p aria-live="polite" class="ranking-status"></p>
+<button class="ranking-refresh-button" type="button">새로고침</button>
 </div>
 <div aria-hidden="true" class="ranking-column-header">
 <span>순위</span>
@@ -134,10 +160,23 @@
 <span>점수</span>
 <span>달성일</span>
 </div>
-<ol class="ranking-list" id="rankingList"></ol>
+<ol class="ranking-list"></ol>
+</div>
+<div aria-labelledby="rankingAllTimeTab" class="ranking-tab-panel" data-ranking-scope="all" hidden id="modalAllTimeRankings" role="tabpanel" tabindex="0">
+<div class="ranking-toolbar">
+<p aria-live="polite" class="ranking-status"></p>
+<button class="ranking-refresh-button" type="button">새로고침</button>
+</div>
+<div aria-hidden="true" class="ranking-column-header">
+<span>순위</span>
+<span>닉네임</span>
+<span>점수</span>
+<span>달성일</span>
+</div>
+<ol class="ranking-list"></ol>
 </div>
 </div>
-<p aria-live="polite" class="message" id="message"></p>
+</div>
 </main>
 </body>
 </html>

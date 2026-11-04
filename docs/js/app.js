@@ -1008,10 +1008,11 @@ const rankingButton = document.querySelector("#rankingButton");
 const gameRankingButton = document.querySelector("#gameRankingButton");
 const rankingModal = document.querySelector("#rankingModal");
 const closeRankingButton = document.querySelector("#closeRankingButton");
-const refreshRankingButton = document.querySelector("#refreshRankingButton");
-const rankingPeriod = document.querySelector("#rankingPeriod");
-const rankingStatus = document.querySelector("#rankingStatus");
-const rankingList = document.querySelector("#rankingList");
+const rankingTabList = rankingModal.querySelector(".ranking-tabs");
+const rankingTabs = [...rankingTabList.querySelectorAll('[role="tab"]')];
+const weeklyRankingTab = document.querySelector("#rankingWeeklyTab");
+const allTimeRankingTab = document.querySelector("#rankingAllTimeTab");
+const weeklyRankings = document.querySelector("#weeklyRankings");
 const gameOverModal = document.querySelector("#gameOverModal");
 const finalScore = document.querySelector("#finalScore");
 const finalHighScore = document.querySelector("#finalHighScore");
@@ -1021,6 +1022,9 @@ const openRankingFromGameOverButton = document.querySelector(
   "#openRankingFromGameOverButton"
 );
 const closeGameOverButton = document.querySelector("#closeGameOverButton");
+const openReturnToStartButton = document.querySelector("#openReturnToStartButton");
+const returnToStartDialog = document.querySelector("#returnToStartDialog");
+const confirmReturnToStartButton = document.querySelector("#confirmReturnToStartButton");
 
 let engine = null;
 let render = null;
@@ -1038,8 +1042,8 @@ let isGameOver = false;
 let isStarting = false;
 let dangerStartedAt = null;
 let rankingReturnFocusElement = null;
-let isRankingLoading = false;
 let shouldResumeGameAfterRanking = false;
+let returnDialogOpenedAt = 0;
 
 const rankingClient = createRankingClient();
 
@@ -1055,23 +1059,36 @@ if (savedNickname) {
 
 highScoreElement.textContent = highScore;
 renderFruitGuide();
+void loadRankings(weeklyRankings);
 
 startButton.addEventListener("click", startGame);
 nicknameInput.addEventListener("keydown", handleNicknameKeydown);
 fruitGuideButton.addEventListener("click", openFruitGuideModal);
 closeFruitGuideButton.addEventListener("click", closeFruitGuideModal);
 fruitGuideModal.addEventListener("click", handleFruitGuideBackdropClick);
-rankingButton.addEventListener("click", openRankingModal);
-gameRankingButton.addEventListener("click", openRankingModal);
+rankingButton.addEventListener("click", () => openRankingModal(allTimeRankingTab));
+gameRankingButton.addEventListener("click", () => openRankingModal(weeklyRankingTab));
 closeRankingButton.addEventListener("click", closeRankingModal);
-refreshRankingButton.addEventListener("click", loadRankings);
 rankingModal.addEventListener("click", handleRankingBackdropClick);
 openRankingFromGameOverButton.addEventListener(
   "click",
-  openRankingModal
+  () => openRankingModal(weeklyRankingTab)
 );
+rankingTabList.addEventListener("keydown", handleRankingTabKeydown);
+for (const tab of rankingTabs) {
+  tab.addEventListener("click", () => selectRankingTab(tab));
+}
+for (const panel of document.querySelectorAll("[data-ranking-scope]")) {
+  panel.querySelector(".ranking-refresh-button").addEventListener(
+    "click",
+    () => void loadRankings(panel)
+  );
+}
 document.addEventListener("keydown", handleGlobalKeydown);
 closeGameOverButton.addEventListener("click", returnToStartScreen);
+openReturnToStartButton.addEventListener("click", openReturnToStartDialog);
+returnToStartDialog.addEventListener("close", resumeGameAfterReturnDialog);
+confirmReturnToStartButton.addEventListener("click", returnToStartScreen);
 
 /**
  * 브라우저용 Supabase 클라이언트를 생성합니다.
@@ -1110,11 +1127,12 @@ function getCurrentNickname() {
 }
 
 /**
- * 랭킹 모달을 열고 최신 상위 50개 기록을 조회합니다.
+ * 랭킹 모달을 열고 지정된 탭의 기록을 조회합니다.
  *
+ * @param {HTMLButtonElement} tab 처음 표시할 탭
  * @returns {void}
  */
-function openRankingModal() {
+function openRankingModal(tab) {
   rankingReturnFocusElement = document.activeElement;
 
   shouldResumeGameAfterRanking = Boolean(
@@ -1132,7 +1150,50 @@ function openRankingModal() {
   rankingModal.classList.remove("hidden");
   document.body.classList.add("modal-open");
   closeRankingButton.focus();
-  void loadRankings();
+  selectRankingTab(tab);
+}
+
+function selectRankingTab(selectedTab) {
+  for (const tab of rankingTabs) {
+    const selected = tab === selectedTab;
+    const panel = document.getElementById(tab.getAttribute("aria-controls"));
+
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    panel.hidden = !selected;
+
+    if (selected) {
+      void loadRankings(panel);
+    }
+  }
+}
+
+function handleRankingTabKeydown(event) {
+  const currentIndex = rankingTabs.indexOf(event.target);
+  const lastIndex = rankingTabs.length - 1;
+  let nextIndex;
+
+  switch (event.key) {
+    case "ArrowLeft":
+      nextIndex = currentIndex === 0 ? lastIndex : currentIndex - 1;
+      break;
+    case "ArrowRight":
+      nextIndex = currentIndex === lastIndex ? 0 : currentIndex + 1;
+      break;
+    case "Home":
+      nextIndex = 0;
+      break;
+    case "End":
+      nextIndex = lastIndex;
+      break;
+    default:
+      return;
+  }
+
+  event.preventDefault();
+  const tab = rankingTabs[nextIndex];
+  selectRankingTab(tab);
+  tab.focus();
 }
 
 /**
@@ -1182,17 +1243,7 @@ function handleRankingBackdropClick(event) {
   }
 }
 
-/**
- * Supabase에서 점수순 상위 50개 기록을 조회합니다.
- * 동점일 때는 최고 점수를 먼저 달성한 기록이 위에 표시됩니다.
- *
- * @returns {Promise<void>} 랭킹 조회 완료 Promise
- */
-async function loadRankings() {
-  if (isRankingLoading) {
-    return;
-  }
-
+function formatWeeklyRankingPeriod() {
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
   const formatDay = new Intl.DateTimeFormat("ko-KR", {
@@ -1202,55 +1253,71 @@ async function loadRankings() {
   });
   const startDay = formatDay.format(now - 6 * day);
   const endDay = formatDay.format(now);
-  rankingPeriod.textContent = `${startDay} 부터 ${endDay} 까지`;
+  return `${startDay} 부터 ${endDay} 까지`;
+}
 
-  if (!rankingClient) {
-    rankingStatus.textContent =
-      "랭킹 서버에 연결할 수 없습니다.";
-    rankingList.replaceChildren();
+/**
+ * 지정된 랭킹 영역의 기록을 조회합니다.
+ *
+ * @param {HTMLElement} panel 랭킹을 표시할 영역
+ * @returns {Promise<void>} 랭킹 조회 완료 Promise
+ */
+async function loadRankings(panel) {
+  const list = panel.querySelector(".ranking-list");
+  const status = panel.querySelector(".ranking-status");
+  const refreshButton = panel.querySelector(".ranking-refresh-button");
+  const weekly = panel.dataset.rankingScope === "weekly";
+  const rpcName = weekly ? "get_kkobak_weekly_rankings" : "get_kkobak_all_time_rankings";
+
+  if (list.hasAttribute("aria-busy")) {
     return;
   }
 
-  isRankingLoading = true;
-  refreshRankingButton.disabled = true;
-  rankingStatus.textContent = "랭킹을 불러오는 중입니다.";
-  rankingList.setAttribute("aria-busy", "true");
+  if (weekly) {
+    panel.querySelector(".ranking-period").textContent = formatWeeklyRankingPeriod();
+  }
+
+  if (!rankingClient) {
+    status.textContent = "랭킹 서버에 연결할 수 없습니다.";
+    list.replaceChildren();
+    return;
+  }
+
+  refreshButton.disabled = true;
+  status.textContent = "랭킹을 불러오는 중입니다.";
+  list.setAttribute("aria-busy", "true");
 
   try {
-    const { data, error } = await rankingClient.rpc("get_kkobak_weekly_rankings");
+    const { data, error } = await rankingClient.rpc(rpcName);
 
     if (error) {
       throw error;
     }
 
-    renderRankings(data || []);
+    const rankings = data || [];
+    list.replaceChildren(...createRankingItems(rankings));
+    status.textContent = rankings.length
+      ? `상위 ${rankings.length}개의 기록입니다.`
+      : "등록된 기록이 없습니다.";
   } catch (error) {
     console.error("랭킹 조회 실패:", error);
-    rankingStatus.textContent =
-      "랭킹을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
-    rankingList.replaceChildren();
+    status.textContent = "랭킹을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
+    list.replaceChildren();
   } finally {
-    isRankingLoading = false;
-    refreshRankingButton.disabled = false;
-    rankingList.removeAttribute("aria-busy");
+    refreshButton.disabled = false;
+    list.removeAttribute("aria-busy");
   }
 }
 
 /**
- * 조회한 랭킹 데이터를 모달 목록에 표시합니다.
+ * 조회한 랭킹의 목록 항목을 만듭니다.
  *
  * @param {Array<Object>} rankings - Supabase 랭킹 행 목록
- * @returns {void}
+ * @returns {HTMLLIElement[]} 랭킹 목록 항목
  */
-function renderRankings(rankings) {
-  if (rankings.length === 0) {
-    rankingStatus.textContent = "최근 7일 동안 등록된 기록이 없습니다.";
-    rankingList.replaceChildren();
-    return;
-  }
-
+function createRankingItems(rankings) {
   const currentNickname = getCurrentNickname();
-  const items = rankings.map((ranking, index) => {
+  return rankings.map((ranking, index) => {
     const item = document.createElement("li");
     const rank = document.createElement("span");
     const nickname = document.createElement("strong");
@@ -1285,9 +1352,6 @@ function renderRankings(rankings) {
     return item;
   });
 
-  rankingStatus.textContent =
-    `상위 ${rankings.length}개의 기록입니다.`;
-  rankingList.replaceChildren(...items);
 }
 
 /**
@@ -1308,6 +1372,7 @@ function formatRankingDate(value) {
   }
 
   return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
     year: "2-digit",
     month: "2-digit",
     day: "2-digit"
@@ -1393,7 +1458,7 @@ function saveHighScore() {
   try {
     localStorage.setItem(
       HIGH_SCORE_STORAGE_KEY,
-      String(highScore)
+      String(Math.max(highScore, loadHighScore()))
     );
   } catch (error) {
     console.warn("최고 점수를 저장하지 못했습니다.", error);
@@ -2493,6 +2558,10 @@ function endGame() {
   gameOverLine.classList.add("is-counting");
   gameContainer.classList.add("game-over", "danger-zone");
 
+  if (hasNewHighScore) {
+    saveHighScore();
+  }
+
   finalScore.textContent = score;
   finalHighScore.textContent = highScore;
   newRecordMessage.classList.toggle(
@@ -2526,7 +2595,32 @@ function addScore(point) {
   highScore = score;
   hasNewHighScore = true;
   highScoreElement.textContent = highScore;
-  saveHighScore();
+}
+
+function openReturnToStartDialog() {
+  if (isGameOver || returnToStartDialog.open) {
+    return;
+  }
+
+  returnToStartDialog.showModal();
+  returnDialogOpenedAt = performance.now();
+  document.body.classList.add("modal-open");
+  Runner.stop(runner);
+
+  if (activeDragPointerId !== null) {
+    releaseDragPointer(activeDragPointerId);
+  }
+}
+
+function resumeGameAfterReturnDialog() {
+  document.body.classList.remove("modal-open");
+
+  if (dangerStartedAt !== null) {
+    dangerStartedAt += performance.now() - returnDialogOpenedAt;
+  }
+
+  Runner.run(runner, engine);
+  openReturnToStartButton.focus();
 }
 
 /**

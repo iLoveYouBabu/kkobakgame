@@ -396,6 +396,26 @@ button:disabled {
   font-size: 28px;
 }
 
+.return-to-start-dialog {
+  width: min(calc(100% - 40px), 320px);
+  border: 0;
+}
+
+.return-to-start-dialog::backdrop {
+  background: rgb(0 0 0 / 58%);
+  backdrop-filter: blur(3px);
+}
+
+.return-to-start-dialog h2 {
+  margin-bottom: 10px;
+  font-size: 22px;
+}
+
+.return-to-start-dialog p {
+  margin: 0 0 20px;
+  color: #555;
+}
+
 .final-score-label {
   margin: 0 0 20px;
   color: #666;
@@ -503,7 +523,7 @@ button:disabled {
   color: #d98000;
 }
 
-/* 게임 화면 오른쪽 아래에 랭킹과 도감 버튼을 세로로 배치합니다. */
+/* 게임 화면 오른쪽 아래에 보조 메뉴를 세로로 배치합니다. */
 .game-floating-actions {
   position: fixed;
   z-index: 850;
@@ -516,6 +536,7 @@ button:disabled {
 }
 
 .game-ranking-button,
+.game-return-button,
 .fruit-guide-button {
   min-width: 58px;
   min-height: 38px;
@@ -536,12 +557,14 @@ button:disabled {
 }
 
 .game-ranking-button:hover,
+.game-return-button:hover,
 .fruit-guide-button:hover {
   transform: translateY(-1px);
   box-shadow: 0 9px 25px rgb(0 0 0 / 20%);
 }
 
 .game-ranking-button:active,
+.game-return-button:active,
 .fruit-guide-button:active {
   transform: translateY(0);
 }
@@ -738,6 +761,7 @@ body.modal-open {
   }
 
   .game-ranking-button,
+  .game-return-button,
   .fruit-guide-button {
     min-width: 54px;
     min-height: 36px;
@@ -804,6 +828,8 @@ body.modal-open {
 }
 
 .ranking-card {
+  display: flex;
+  flex-direction: column;
   width: min(100%, 580px);
   max-height: min(86vh, 720px);
   padding: 20px;
@@ -834,10 +860,75 @@ body.modal-open {
   font-size: 24px;
 }
 
+.ranking-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.ranking-tabs button {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid rgb(41 41 41 / 14%);
+  border-radius: 10px;
+  background: #fffaf0;
+  color: #444;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ranking-tabs [aria-selected="true"] {
+  border-color: #48a84b;
+  background: #e6f6e6;
+  color: #245c26;
+}
+
+.ranking-tab-panel:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ranking-tab-panel .ranking-period {
+  margin: 0 0 6px;
+  text-align: left;
+}
+
 .ranking-period {
   margin: 6px 0 0;
   color: #666;
   font-size: 12px;
+}
+
+.weekly-rankings {
+  width: min(100%, 480px);
+  margin: 16px auto 0;
+  padding: 16px;
+  border: 2px solid #222;
+  border-radius: 16px;
+  background: #fff;
+  text-align: left;
+}
+
+.weekly-rankings h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.weekly-ranking-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.weekly-rankings .ranking-status {
+  margin: 8px 0;
+}
+
+.weekly-rankings .ranking-list {
+  max-height: none;
 }
 
 .ranking-close-button {
